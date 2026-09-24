@@ -39,7 +39,7 @@
       box-shadow: 0 4px 15px rgba(0,0,0,0.3);
     }
 
-    select, button, input, textarea {
+    select, button, input {
       width: 100%;
       padding: 12px;
       margin: 8px 0;
@@ -215,6 +215,11 @@
       background: #2d2d48;
     }
 
+    .roadmap-item.is-prestige.unlocked {
+      border-color: #ffd700;
+      background: #3b3511;
+    }
+
     .roadmap-icon {
       width: 45px;
       height: 45px;
@@ -318,15 +323,18 @@ const faecherDef = [
   { id: 'powi', name: 'Politik & Wirtschaft', icon: '🗳️' }
 ];
 
-// STUFEN DEFINITIONEN (in Stunden)
+// STUFEN DEFINITIONEN INKLUSIVE PRESTIGE (in Stunden)
 const stufenDef = [
-  { stufe: 1, stunden: 0, label: 'Novize' },
-  { stufe: 2, stunden: 1, label: 'Lernender' },
-  { stufe: 3, stunden: 3, label: 'Fortgeschrittener' },
-  { stufe: 4, stunden: 5, label: 'Könner' },
-  { stufe: 5, stunden: 10, label: 'Experte' },
-  { stufe: 6, stunden: 20, label: 'Meister' },
-  { stufe: 7, stunden: 50, label: 'Großmeister' }
+  { stufe: 1, stunden: 0, label: 'Novize', isPrestige: false },
+  { stufe: 2, stunden: 1, label: 'Lernender', isPrestige: false },
+  { stufe: 3, stunden: 3, label: 'Fortgeschrittener', isPrestige: false },
+  { stufe: 4, stunden: 5, label: 'Könner', isPrestige: false },
+  { stufe: 5, stunden: 10, label: 'Experte', isPrestige: false },
+  { stufe: 6, stunden: 20, label: 'Meister', isPrestige: false },
+  { stufe: 7, stunden: 50, label: 'Großmeister', isPrestige: false },
+  { stufe: 8, stunden: 100, label: '⭐ Prestige I', isPrestige: true, icon: '🥇' },
+  { stufe: 9, stunden: 200, label: '🌟 Prestige II', isPrestige: true, icon: '🏆' },
+  { stufe: 10, stunden: 350, label: '💎 Prestige III (Max)', isPrestige: true, icon: '👑' }
 ];
 
 let nutzerDaten = JSON.parse(localStorage.getItem('timestamp_2_daten')) || {};
@@ -356,8 +364,7 @@ function holeStempelStatus(minuten) {
   else if (stunden >= 200) prestige = 2;
   else if (stunden >= 100) prestige = 1;
 
-  // Nächstes Ziel ermitteln
-  let naechsteStunde = 60;
+  let naechsteStunde = 350;
   for (let s of stufenDef) {
     if (stunden < s.stunden) {
       naechsteStunde = s.stunden;
@@ -365,7 +372,7 @@ function holeStempelStatus(minuten) {
     }
   }
 
-  return { stufe: aktuelleStufe, prestige, stunden, naechsteStunde };
+  return { stufe: Math.min(7, aktuelleStufe), prestige, stunden, naechsteStunde };
 }
 
 function rendereFaecher() {
@@ -404,7 +411,7 @@ function rendereFaecher() {
   });
 }
 
-/* ROADMAP MODAL */
+/* ROADMAP MODAL MIT PRESTIGE */
 function oeffneRoadmap(fachId) {
   const fach = faecherDef.find(f => f.id === fachId);
   const daten = nutzerDaten[fachId];
@@ -419,7 +426,7 @@ function oeffneRoadmap(fachId) {
   stufenDef.forEach(s => {
     const freigeschaltet = gesamtStunden >= s.stunden;
     const item = document.createElement('div');
-    item.className = `roadmap-item ${freigeschaltet ? 'unlocked' : ''}`;
+    item.className = `roadmap-item ${s.isPrestige ? 'is-prestige' : ''} ${freigeschaltet ? 'unlocked' : ''}`;
 
     let subText = '';
     if (freigeschaltet) {
@@ -431,12 +438,14 @@ function oeffneRoadmap(fachId) {
       subText = `🔒 Noch ${restStd > 0 ? restStd + 'h ' : ''}${restM}m nötig`;
     }
 
+    const Anzeigepiktogramm = s.isPrestige ? s.icon : fach.icon;
+
     item.innerHTML = `
       <div class="roadmap-icon ${freigeschaltet ? '' : 'locked'}">
-        ${freigeschaltet ? fach.icon : '❓'}
+        ${freigeschaltet ? Anzeigepiktogramm : '❓'}
       </div>
       <div class="roadmap-details">
-        <span class="roadmap-title">Stufe ${s.stufe}: ${s.label} (${s.stunden} Std.)</span>
+        <span class="roadmap-title">${s.label} (${s.stunden} Std.)</span>
         <span class="roadmap-sub">${subText}</span>
       </div>
     `;
