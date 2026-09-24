@@ -1,0 +1,15 @@
+{
+  "name": "TimeStamp 2.0",
+  "short_name": "TimeStamp",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#12121c",
+  "theme_color": "#1e1e2f",
+  "icons": [
+    {
+      "src": "https://via.placeholder.com/192/6c5ce7/ffffff?text=TS",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
