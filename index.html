@@ -39,7 +39,7 @@
       box-shadow: 0 4px 15px rgba(0,0,0,0.3);
     }
 
-    select, button, input {
+    select, button, input, textarea {
       width: 100%;
       padding: 12px;
       margin: 8px 0;
@@ -49,6 +49,7 @@
       background: #2a2a40;
       color: var(--text-color);
       box-sizing: border-box;
+      font-family: inherit;
     }
 
     button {
@@ -84,6 +85,12 @@
       flex-direction: column;
       align-items: center;
       border: 2px solid transparent;
+      cursor: pointer;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+
+    .stempel-card:hover {
+      transform: translateY(-2px);
     }
 
     .stempel-icon {
@@ -98,12 +105,6 @@
       background: #33334d;
       transition: all 0.3s;
     }
-
-    /* Skins */
-    .skin-default { background: #3a3a5e; }
-    .skin-kosmos { background: linear-gradient(135deg, #0f2027, #203a43, #2c5364); }
-    .skin-neon { background: #000; border: 2px solid #00ffcc; box-shadow: 0 0 10px #00ffcc; }
-    .skin-antik { background: #d4a373; color: #332211; }
 
     /* Prestige Effekte */
     .prestige-1 { border-color: #ffd700; }
@@ -128,28 +129,119 @@
 
     /* Logbuch Styles */
     .log-item {
+      background: #252538;
+      padding: 12px 14px;
+      border-radius: 10px;
+      margin-bottom: 10px;
+    }
+
+    .log-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      background: #252538;
-      padding: 10px 14px;
-      border-radius: 10px;
-      margin-bottom: 8px;
     }
 
     .log-info { display: flex; flex-direction: column; }
     .log-title { font-weight: bold; font-size: 15px; }
     .log-date { font-size: 12px; color: var(--text-dim); }
 
-    .delete-btn {
-      width: auto;
-      padding: 6px 12px;
-      margin: 0;
-      background: var(--danger-color);
-      font-size: 14px;
+    .log-actions {
+      display: flex;
+      gap: 6px;
     }
 
-    .hidden { display: none; }
+    .btn-sm {
+      width: auto;
+      padding: 6px 10px;
+      margin: 0;
+      font-size: 13px;
+    }
+
+    .delete-btn { background: var(--danger-color); }
+    .note-btn { background: #3a3a5e; }
+
+    .log-note-text {
+      margin-top: 8px;
+      padding: 8px;
+      background: #1e1e2f;
+      border-radius: 6px;
+      font-size: 13px;
+      color: #d1d1e0;
+      border-left: 3px solid var(--accent-color);
+    }
+
+    /* Modal / Pop-Up für Stempel-Roadmap */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    .modal-content {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 20px;
+      width: 100%;
+      max-width: 450px;
+      max-height: 85vh;
+      overflow-y: auto;
+    }
+
+    .roadmap-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 15px;
+    }
+
+    .roadmap-item {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      background: #252538;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid #3a3a5e;
+    }
+
+    .roadmap-item.unlocked {
+      border-color: var(--accent-color);
+      background: #2d2d48;
+    }
+
+    .roadmap-icon {
+      width: 45px;
+      height: 45px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      background: #1e1e2f;
+    }
+
+    .roadmap-icon.locked {
+      filter: brightness(0) drop-shadow(0 0 2px rgba(255,255,255,0.2));
+      opacity: 0.4;
+      background: #12121c;
+    }
+
+    .roadmap-details {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+
+    .roadmap-title { font-weight: bold; font-size: 14px; }
+    .roadmap-sub { font-size: 12px; color: var(--text-dim); }
+
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
@@ -188,6 +280,7 @@
   <!-- STEMPEL BEREICH -->
   <div class="card">
     <h2>Deine Stempelsammlung</h2>
+    <p style="text-align:center; font-size:12px; color:var(--text-dim); margin-top:-5px;">Tippe auf ein Fach für die Stempel-Roadmap 🗺️</p>
     <div class="stempel-grid" id="stempel-liste"></div>
   </div>
 
@@ -195,6 +288,16 @@
   <div class="card">
     <h2>📜 Logbuch &amp; Verlauf</h2>
     <div id="logbuch-liste"></div>
+  </div>
+</div>
+
+<!-- MODAL FÜR STEMPEL ROADMAP -->
+<div id="roadmap-modal" class="modal-overlay hidden">
+  <div class="modal-content">
+    <h2 id="modal-fach-titel">Stempel-Roadmap</h2>
+    <p id="modal-fach-info" style="text-align:center; color:var(--text-dim); font-size:13px;"></p>
+    <div id="modal-roadmap-liste" class="roadmap-list"></div>
+    <button onclick="schliesseRoadmap()" style="margin-top:20px;">Schließen</button>
   </div>
 </div>
 
@@ -215,14 +318,23 @@ const faecherDef = [
   { id: 'powi', name: 'Politik & Wirtschaft', icon: '🗳️' }
 ];
 
-// SPEICHER-DATEN LADEN ODER ERSTELLEN
+// STUFEN DEFINITIONEN (in Stunden)
+const stufenDef = [
+  { stufe: 1, stunden: 0, label: 'Novize' },
+  { stufe: 2, stunden: 1, label: 'Lernender' },
+  { stufe: 3, stunden: 3, label: 'Fortgeschrittener' },
+  { stufe: 4, stunden: 5, label: 'Könner' },
+  { stufe: 5, stunden: 10, label: 'Experte' },
+  { stufe: 6, stunden: 20, label: 'Meister' },
+  { stufe: 7, stunden: 50, label: 'Großmeister' }
+];
+
 let nutzerDaten = JSON.parse(localStorage.getItem('timestamp_2_daten')) || {};
 let logbuch = JSON.parse(localStorage.getItem('timestamp_2_logbuch')) || [];
 
-// Initialisiere fehlende Fächer im Speicher
 faecherDef.forEach(f => {
   if (!nutzerDaten[f.id]) {
-    nutzerDaten[f.id] = { minuten: 0, skin: 'default' };
+    nutzerDaten[f.id] = { minuten: 0 };
   }
 });
 
@@ -231,23 +343,31 @@ function speichereDaten() {
   localStorage.setItem('timestamp_2_logbuch', JSON.stringify(logbuch));
 }
 
-// BERECHNUNG STEMPEL-LEVEL & PRESTIGE
 function holeStempelStatus(minuten) {
   const stunden = minuten / 60;
-  if (stunden < 1) return { stufe: 1, prestige: 0, maxMin: 60 };
-  if (stunden < 3) return { stufe: 2, prestige: 0, maxMin: 180 };
-  if (stunden < 5) return { stufe: 3, prestige: 0, maxMin: 300 };
-  if (stunden < 10) return { stufe: 4, prestige: 0, maxMin: 600 };
-  if (stunden < 20) return { stufe: 5, prestige: 0, maxMin: 1200 };
-  if (stunden < 50) return { stufe: 6, prestige: 0, maxMin: 3000 };
+  let aktuelleStufe = 1;
   
-  if (stunden < 100) return { stufe: 7, prestige: 1, maxMin: 6000 };
-  if (stunden < 200) return { stufe: 7, prestige: 2, maxMin: 12000 };
-  if (stunden < 350) return { stufe: 7, prestige: 3, maxMin: 21000 };
-  return { stufe: 7, prestige: 4, maxMin: 30000 };
+  for (let s of stufenDef) {
+    if (stunden >= s.stunden) aktuelleStufe = s.stufe;
+  }
+
+  let prestige = 0;
+  if (stunden >= 350) prestige = 3;
+  else if (stunden >= 200) prestige = 2;
+  else if (stunden >= 100) prestige = 1;
+
+  // Nächstes Ziel ermitteln
+  let naechsteStunde = 60;
+  for (let s of stufenDef) {
+    if (stunden < s.stunden) {
+      naechsteStunde = s.stunden;
+      break;
+    }
+  }
+
+  return { stufe: aktuelleStufe, prestige, stunden, naechsteStunde };
 }
 
-// OBERFLÄCHE AKTUALISIEREN
 function rendereFaecher() {
   const select = document.getElementById('fach-select');
   const liste = document.getElementById('stempel-liste');
@@ -263,14 +383,14 @@ function rendereFaecher() {
 
     const daten = nutzerDaten[f.id];
     const status = holeStempelStatus(daten.minuten);
-    
-    const percent = Math.min(100, (daten.minuten / status.maxMin) * 100);
+    const percent = Math.min(100, (daten.minuten / (status.naechsteStunde * 60)) * 100);
 
     const card = document.createElement('div');
     card.className = `stempel-card ${status.prestige > 0 ? 'prestige-' + status.prestige : ''}`;
-    
+    card.onclick = () => oeffneRoadmap(f.id);
+
     card.innerHTML = `
-      <div class="stempel-icon skin-${daten.skin}">${f.icon}</div>
+      <div class="stempel-icon">${f.icon}</div>
       <strong>${f.name}</strong>
       <small style="color:var(--text-dim)">
         ${status.prestige > 0 ? '⭐ Prestige ' + status.prestige : 'Stufe ' + status.stufe}
@@ -284,6 +404,53 @@ function rendereFaecher() {
   });
 }
 
+/* ROADMAP MODAL */
+function oeffneRoadmap(fachId) {
+  const fach = faecherDef.find(f => f.id === fachId);
+  const daten = nutzerDaten[fachId];
+  const gesamtStunden = daten.minuten / 60;
+
+  document.getElementById('modal-fach-titel').textContent = `${fach.icon} ${fach.name} Roadmap`;
+  document.getElementById('modal-fach-info').textContent = `Gesamtzeit: ${Math.floor(daten.minuten / 60)} Std. ${daten.minuten % 60} Min.`;
+
+  const liste = document.getElementById('modal-roadmap-liste');
+  liste.innerHTML = '';
+
+  stufenDef.forEach(s => {
+    const freigeschaltet = gesamtStunden >= s.stunden;
+    const item = document.createElement('div');
+    item.className = `roadmap-item ${freigeschaltet ? 'unlocked' : ''}`;
+
+    let subText = '';
+    if (freigeschaltet) {
+      subText = '✅ Freigeschaltet!';
+    } else {
+      const restMin = Math.ceil((s.stunden * 60) - daten.minuten);
+      const restStd = Math.floor(restMin / 60);
+      const restM = restMin % 60;
+      subText = `🔒 Noch ${restStd > 0 ? restStd + 'h ' : ''}${restM}m nötig`;
+    }
+
+    item.innerHTML = `
+      <div class="roadmap-icon ${freigeschaltet ? '' : 'locked'}">
+        ${freigeschaltet ? fach.icon : '❓'}
+      </div>
+      <div class="roadmap-details">
+        <span class="roadmap-title">Stufe ${s.stufe}: ${s.label} (${s.stunden} Std.)</span>
+        <span class="roadmap-sub">${subText}</span>
+      </div>
+    `;
+    liste.appendChild(item);
+  });
+
+  document.getElementById('roadmap-modal').classList.remove('hidden');
+}
+
+function schliesseRoadmap() {
+  document.getElementById('roadmap-modal').classList.add('hidden');
+}
+
+/* LOGBUCH LOGIK */
 function rendereLogbuch() {
   const logListe = document.getElementById('logbuch-liste');
   logListe.innerHTML = '';
@@ -293,43 +460,55 @@ function rendereLogbuch() {
     return;
   }
 
-  // Neueste Sessions oben anzeigen
   logbuch.slice().reverse().forEach((eintrag) => {
     const fachObj = faecherDef.find(f => f.id === eintrag.fachId) || { name: eintrag.fachId, icon: '📚' };
     
     const item = document.createElement('div');
     item.className = 'log-item';
     item.innerHTML = `
-      <div class="log-info">
-        <span class="log-title">${fachObj.icon} ${fachObj.name} – ${eintrag.minuten} Min.</span>
-        <span class="log-date">${eintrag.datum}</span>
+      <div class="log-header">
+        <div class="log-info">
+          <span class="log-title">${fachObj.icon} ${fachObj.name} – ${eintrag.minuten} Min.</span>
+          <span class="log-date">${eintrag.datum}</span>
+        </div>
+        <div class="log-actions">
+          <button class="btn-sm note-btn" onclick="bearbeiteNotiz(${eintrag.id})">📝 Notiz</button>
+          <button class="btn-sm delete-btn" onclick="loescheSession(${eintrag.id})">🗑️</button>
+        </div>
       </div>
-      <button class="delete-btn" onclick="loescheSession(${eintrag.id})">🗑️ Löschen</button>
+      ${eintrag.notiz ? `<div class="log-note-text">📌 ${eintrag.notiz}</div>` : ''}
     `;
     logListe.appendChild(item);
   });
+}
+
+function bearbeiteNotiz(id) {
+  const eintrag = logbuch.find(e => e.id === id);
+  if (!eintrag) return;
+
+  const neueNotiz = prompt('Notiz für diese Lerneinheit (z.B. Thema, Hausaufgabe):', eintrag.notiz || '');
+  if (neueNotiz !== null) {
+    eintrag.notiz = neueNotiz.trim();
+    speichereDaten();
+    rendereLogbuch();
+  }
 }
 
 function loescheSession(id) {
   const index = logbuch.findIndex(e => e.id === id);
   if (index !== -1) {
     const eintrag = logbuch[index];
-    
-    // Minuten vom Fach abziehen
     if (nutzerDaten[eintrag.fachId]) {
       nutzerDaten[eintrag.fachId].minuten = Math.max(0, nutzerDaten[eintrag.fachId].minuten - eintrag.minuten);
     }
-
-    // Aus Logbuch entfernen
     logbuch.splice(index, 1);
-    
     speichereDaten();
     rendereFaecher();
     rendereLogbuch();
   }
 }
 
-// TIMER LOGIK
+/* TIMER LOGIK */
 let timerInterval = null;
 let verbleibendeSekunden = 0;
 let zielMinuten = 0;
@@ -394,7 +573,6 @@ function beendeSession() {
   if (gelernteMinuten > 0) {
     nutzerDaten[aktuellesFach].minuten += gelernteMinuten;
 
-    // Eintrag für Logbuch erstellen
     const jetzt = new Date();
     const datumString = jetzt.toLocaleDateString('de-DE') + ' um ' + jetzt.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
     
@@ -402,7 +580,8 @@ function beendeSession() {
       id: Date.now(),
       fachId: aktuellesFach,
       minuten: gelernteMinuten,
-      datum: datumString
+      datum: datumString,
+      notiz: ''
     });
 
     speichereDaten();
@@ -425,4 +604,3 @@ if ('serviceWorker' in navigator) {
 </script>
 </body>
 </html>
-

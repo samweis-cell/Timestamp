@@ -1,4 +1,4 @@
-const CACHE_NAME = 'timestamp-v2';
+const CACHE_NAME = 'timestamp-v3';
 const urlsToCache = [
   './',
   './index.html',
