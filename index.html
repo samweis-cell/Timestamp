@@ -14,6 +14,7 @@
       --text-color: #ffffff;
       --text-dim: #a0a0b0;
       --danger-color: #e74c3c;
+      --title-color: #a29bfe;
     }
 
     body {
@@ -72,7 +73,7 @@
     /* Stempel-Grid */
     .stempel-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
       gap: 15px;
     }
 
@@ -101,9 +102,28 @@
       align-items: center;
       justify-content: center;
       font-size: 28px;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
       background: #33334d;
       transition: all 0.3s;
+    }
+
+    .fach-titel-badge {
+      font-size: 11px;
+      font-weight: bold;
+      color: var(--title-color);
+      background: rgba(108, 92, 231, 0.2);
+      padding: 2px 6px;
+      border-radius: 6px;
+      margin: 4px 0;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .fach-titel-locked {
+      font-size: 11px;
+      color: var(--text-dim);
+      margin: 4px 0;
+      font-style: italic;
     }
 
     /* Prestige Effekte */
@@ -245,6 +265,7 @@
 
     .roadmap-title { font-weight: bold; font-size: 14px; }
     .roadmap-sub { font-size: 12px; color: var(--text-dim); }
+    .roadmap-reward { font-size: 12px; color: var(--title-color); font-weight: bold; margin-top: 2px; }
 
     .hidden { display: none !important; }
   </style>
@@ -285,7 +306,7 @@
   <!-- STEMPEL BEREICH -->
   <div class="card">
     <h2>Deine Stempelsammlung</h2>
-    <p style="text-align:center; font-size:12px; color:var(--text-dim); margin-top:-5px;">Tippe auf ein Fach für die Stempel-Roadmap 🗺️</p>
+    <p style="text-align:center; font-size:12px; color:var(--text-dim); margin-top:-5px;">Tippe auf ein Fach für Titel &amp; Roadmap 🗺️</p>
     <div class="stempel-grid" id="stempel-liste"></div>
   </div>
 
@@ -307,23 +328,23 @@
 </div>
 
 <script>
-// INITIALE FÄCHER DATEN
+// INITIALE FÄCHER DATEN MIT JEWEILS 1 EINZIGARTIGEN MASTRY-TITEL (FREISCHALTUNG BEI STUFE 7 / 50 STUNDEN)
 const faecherDef = [
-  { id: 'mathe', name: 'Mathe', icon: '🧮' },
-  { id: 'deutsch', name: 'Deutsch', icon: '📖' },
-  { id: 'englisch', name: 'Englisch', icon: '🇬🇧' },
-  { id: 'latein', name: 'Latein', icon: '🏛️' },
-  { id: 'altgriechisch', name: 'Altgriechisch', icon: '🏺' },
-  { id: 'physik', name: 'Physik', icon: '⚛️' },
-  { id: 'biologie', name: 'Biologie', icon: '🧬' },
-  { id: 'chemie', name: 'Chemie', icon: '⚗️' },
-  { id: 'musik', name: 'Musik', icon: '🎵' },
-  { id: 'religion', name: 'Religion', icon: '⛪' },
-  { id: 'geschichte', name: 'Geschichte', icon: '🏰' },
-  { id: 'powi', name: 'Politik & Wirtschaft', icon: '🗳️' }
+  { id: 'mathe', name: 'Mathe', icon: '🧮', titel: 'Gott der Algorithmen', unlockStufe: 7 },
+  { id: 'deutsch', name: 'Deutsch', icon: '📖', titel: 'Legenden-Dichter', unlockStufe: 7 },
+  { id: 'englisch', name: 'Englisch', icon: '🇬🇧', titel: 'Sir Learning-a-Lot', unlockStufe: 7 },
+  { id: 'latein', name: 'Latein', icon: '🏛️', titel: 'Imperator Linguae', unlockStufe: 7 },
+  { id: 'altgriechisch', name: 'Altgriechisch', icon: '🏺', titel: 'Halbgott des Wissens', unlockStufe: 7 },
+  { id: 'physik', name: 'Physik', icon: '⚛️', titel: 'Herr der Relativität', unlockStufe: 7 },
+  { id: 'biologie', name: 'Biologie', icon: '🧬', titel: 'Schöpfer der Gene', unlockStufe: 7 },
+  { id: 'chemie', name: 'Chemie', icon: '⚗️', titel: 'Meister der Reaktionen', unlockStufe: 7 },
+  { id: 'musik', name: 'Musik', icon: '🎵', titel: 'Symphonie-Gott', unlockStufe: 7 },
+  { id: 'religion', name: 'Religion', icon: '⛪', titel: 'Erleuchteter', unlockStufe: 7 },
+  { id: 'geschichte', name: 'Geschichte', icon: '🏰', titel: 'Geschichtsschreiber', unlockStufe: 7 },
+  { id: 'powi', name: 'Politik & Wirtschaft', icon: '🗳️', titel: 'Welt-Mogul', unlockStufe: 7 }
 ];
 
-// STUFEN DEFINITIONEN INKLUSIVE PRESTIGE (in Stunden)
+// STUFEN DEFINITIONEN
 const stufenDef = [
   { stufe: 1, stunden: 0, label: 'Novize', isPrestige: false },
   { stufe: 2, stunden: 1, label: 'Lernender', isPrestige: false },
@@ -372,7 +393,7 @@ function holeStempelStatus(minuten) {
     }
   }
 
-  return { stufe: Math.min(7, aktuelleStufe), prestige, stunden, naechsteStunde };
+  return { stufe: Math.min(7, aktuelleStufe), vollesStufenId: aktuelleStufe, prestige, stunden, naechsteStunde };
 }
 
 function rendereFaecher() {
@@ -391,6 +412,7 @@ function rendereFaecher() {
     const daten = nutzerDaten[f.id];
     const status = holeStempelStatus(daten.minuten);
     const percent = Math.min(100, (daten.minuten / (status.naechsteStunde * 60)) * 100);
+    const hatTitel = status.vollesStufenId >= f.unlockStufe;
 
     const card = document.createElement('div');
     card.className = `stempel-card ${status.prestige > 0 ? 'prestige-' + status.prestige : ''}`;
@@ -399,6 +421,10 @@ function rendereFaecher() {
     card.innerHTML = `
       <div class="stempel-icon">${f.icon}</div>
       <strong>${f.name}</strong>
+      ${hatTitel 
+        ? `<div class="fach-titel-badge">«${f.titel}»</div>` 
+        : `<div class="fach-titel-locked">🔒 Titel ab Stufe ${f.unlockStufe}</div>`
+      }
       <small style="color:var(--text-dim)">
         ${status.prestige > 0 ? '⭐ Prestige ' + status.prestige : 'Stufe ' + status.stufe}
       </small>
@@ -411,7 +437,7 @@ function rendereFaecher() {
   });
 }
 
-/* ROADMAP MODAL MIT PRESTIGE */
+/* ROADMAP MODAL */
 function oeffneRoadmap(fachId) {
   const fach = faecherDef.find(f => f.id === fachId);
   const daten = nutzerDaten[fachId];
@@ -438,6 +464,7 @@ function oeffneRoadmap(fachId) {
       subText = `🔒 Noch ${restStd > 0 ? restStd + 'h ' : ''}${restM}m nötig`;
     }
 
+    const hatTitelAufStufe = s.stufe === fach.unlockStufe;
     const Anzeigepiktogramm = s.isPrestige ? s.icon : fach.icon;
 
     item.innerHTML = `
@@ -447,6 +474,7 @@ function oeffneRoadmap(fachId) {
       <div class="roadmap-details">
         <span class="roadmap-title">${s.label} (${s.stunden} Std.)</span>
         <span class="roadmap-sub">${subText}</span>
+        ${hatTitelAufStufe ? `<span class="roadmap-reward">🏆 Titel-Belohnung: «${fach.titel}»</span>` : ''}
       </div>
     `;
     liste.appendChild(item);
