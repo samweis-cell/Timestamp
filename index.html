@@ -14,6 +14,7 @@
       --text-color: #ffffff;
       --text-dim: #a0a0b0;
       --danger-color: #e74c3c;
+      --warning-color: #f39c12;
       --title-color: #a29bfe;
     }
 
@@ -66,8 +67,20 @@
       font-size: 48px;
       font-weight: bold;
       text-align: center;
-      margin: 20px 0;
+      margin: 15px 0;
       font-family: monospace;
+    }
+
+    .pause-badge {
+      background: var(--warning-color);
+      color: #12121c;
+      font-weight: bold;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 13px;
+      text-align: center;
+      margin-bottom: 10px;
+      display: inline-block;
     }
 
     /* Stempel-Grid */
@@ -298,6 +311,9 @@
   <!-- FOKUS BEREICH -->
   <div id="fokus-bereich" class="card hidden">
     <h2 id="fokus-fach-titel">Lernen...</h2>
+    <div style="text-align: center;">
+      <span id="pause-badge" class="pause-badge hidden">⏸️ PAUSIERT (App im Hintergrund)</span>
+    </div>
     <div class="timer-display" id="zeit-anzeige">00:00</div>
     <p style="text-align: center; color: var(--text-dim);">🔒 Fokus aktiv – Bleib dran!</p>
     <button onclick="beendeSession()" style="background: var(--danger-color);">Session Beenden</button>
@@ -328,7 +344,7 @@
 </div>
 
 <script>
-// INITIALE FÄCHER DATEN MIT JEWEILS 1 EINZIGARTIGEN MASTRY-TITEL (FREISCHALTUNG BEI STUFE 7 / 50 STUNDEN)
+// INITIALE FÄCHER DATEN MIT JEWEILS 1 EINZIGARTIGEN MASTERY-TITEL
 const faecherDef = [
   { id: 'mathe', name: 'Mathe', icon: '🧮', titel: 'Gott der Algorithmen', unlockStufe: 7 },
   { id: 'deutsch', name: 'Deutsch', icon: '📖', titel: 'Legenden-Dichter', unlockStufe: 7 },
@@ -545,12 +561,14 @@ function loescheSession(id) {
   }
 }
 
-/* TIMER LOGIK */
+/* TIMER & AUTOMATISCHE PAUSE LOGIK */
 let timerInterval = null;
 let verbleibendeSekunden = 0;
 let zielMinuten = 0;
 let aktuellesFach = '';
 let istStoppuhr = false;
+let istSessionAktiv = false;
+let istPausiert = false;
 
 function toggleModusInput() {
   const modus = document.getElementById('modus-select').value;
@@ -561,6 +579,8 @@ function starteSession() {
   aktuellesFach = document.getElementById('fach-select').value;
   const modus = document.getElementById('modus-select').value;
   istStoppuhr = modus === 'stoppuhr';
+  istSessionAktiv = true;
+  istPausiert = false;
 
   if (!istStoppuhr) {
     zielMinuten = parseInt(document.getElementById('dauer-input').value) || 25;
@@ -571,13 +591,20 @@ function starteSession() {
 
   document.getElementById('setup-bereich').classList.add('hidden');
   document.getElementById('fokus-bereich').classList.remove('hidden');
+  document.getElementById('pause-badge').classList.add('hidden');
   
   const fachObj = faecherDef.find(f => f.id === aktuellesFach);
   document.getElementById('fokus-fach-titel').textContent = `${fachObj.icon} ${fachObj.name}`;
 
   updateTimerAnzeige();
+  starteTimerLoop();
+}
 
+function starteTimerLoop() {
+  if (timerInterval) clearInterval(timerInterval);
   timerInterval = setInterval(() => {
+    if (istPausiert) return;
+
     if (istStoppuhr) {
       verbleibendeSekunden++;
     } else {
@@ -597,7 +624,31 @@ function updateTimerAnzeige() {
   document.getElementById('zeit-anzeige').textContent = `${m}:${s}`;
 }
 
+// ERKAZNT DAS VERLASSEN/ZURÜCKKEHREN ZUR APP (Page Visibility API)
+document.addEventListener('visibilitychange', () => {
+  if (!istSessionAktiv) return;
+
+  if (document.hidden) {
+    // App wurde verlassen / Bildschirm gesperrt -> PAUSIEREN
+    istPausiert = true;
+    if (timerInterval) clearInterval(timerInterval);
+  } else {
+    // App wurde wieder geöffnet -> WEITERLAUFEN
+    istPausiert = false;
+    document.getElementById('pause-badge').classList.remove('hidden');
+    
+    // Badge nach 4 Sekunden wieder ausblenden
+    setTimeout(() => {
+      document.getElementById('pause-badge').classList.add('hidden');
+    }, 4000);
+
+    starteTimerLoop();
+  }
+});
+
 function beendeSession() {
+  istSessionAktiv = false;
+  istPausiert = false;
   clearInterval(timerInterval);
   
   let gelernteMinuten = 0;
