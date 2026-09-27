@@ -39,7 +39,23 @@
       box-sizing: border-box;
     }
 
-    h1, h2, h3 { margin: 10px 0; text-align: center; }
+    h1 {
+      margin: 10px 0;
+      text-align: center;
+    }
+
+    .version-tag {
+      font-size: 13px;
+      background: var(--card-bg);
+      color: var(--title-color);
+      padding: 3px 8px;
+      border-radius: 12px;
+      border: 1px solid var(--accent-color);
+      vertical-align: middle;
+      margin-left: 6px;
+    }
+
+    h2, h3 { margin: 10px 0; text-align: center; }
 
     .container { width: 100%; max-width: 500px; }
 
@@ -301,7 +317,7 @@
 <body>
 
 <div class="container">
-  <h1>🏷️ TimeStamp 2.0</h1>
+  <h1>🏷️ TimeStamp <span class="version-tag">v10.0</span></h1>
 
   <!-- START BEREICH -->
   <div id="setup-bereich" class="card">
@@ -580,10 +596,11 @@ function loescheSession(id) {
   }
 }
 
-/* TIMER & PAUSE LOGIK */
+/* ZEITSTEMPEL-TIMER LOGIK */
 let timerInterval = null;
-let verbleibendeSekunden = 0;
-let zielMinuten = 0;
+let akkumulierteSekunden = 0;
+let startZeitstempel = null;
+let gesamtZielSekunden = 0;
 let aktuellesFach = '';
 let istStoppuhr = false;
 let istSessionAktiv = false;
@@ -600,13 +617,14 @@ function starteSession() {
   istStoppuhr = modus === 'stoppuhr';
   istSessionAktiv = true;
   istPausiert = false;
+  akkumulierteSekunden = 0;
 
   if (!istStoppuhr) {
-    zielMinuten = parseInt(document.getElementById('dauer-input').value) || 25;
-    verbleibendeSekunden = zielMinuten * 60;
-  } else {
-    verbleibendeSekunden = 0;
+    const zielMinuten = parseInt(document.getElementById('dauer-input').value) || 25;
+    gesamtZielSekunden = zielMinuten * 60;
   }
+
+  startZeitstempel = Date.now();
 
   document.getElementById('setup-bereich').classList.add('hidden');
   document.getElementById('fokus-bereich').classList.remove('hidden');
@@ -620,11 +638,20 @@ function starteSession() {
 }
 
 function togglePauseSession() {
-  istPausiert = !istPausiert;
-  aktualisierePauseUI();
-  if (!istPausiert) {
+  if (istPausiert) {
+    startZeitstempel = Date.now();
+    istPausiert = false;
     starteTimerLoop();
+  } else {
+    if (startZeitstempel) {
+      akkumulierteSekunden += Math.floor((Date.now() - startZeitstempel) / 1000);
+    }
+    startZeitstempel = null;
+    istPausiert = true;
+    if (timerInterval) clearInterval(timerInterval);
   }
+  aktualisierePauseUI();
+  updateTimerAnzeige();
 }
 
 function aktualisierePauseUI() {
@@ -643,52 +670,59 @@ function aktualisierePauseUI() {
   }
 }
 
+function berechneVerstricheneSekunden() {
+  if (istPausiert || !startZeitstempel) {
+    return akkumulierteSekunden;
+  }
+  const laufendeSekunden = Math.floor((Date.now() - startZeitstempel) / 1000);
+  return akkumulierteSekunden + laufendeSekunden;
+}
+
 function starteTimerLoop() {
   if (timerInterval) clearInterval(timerInterval);
   timerInterval = setInterval(() => {
     if (istPausiert) return;
 
-    if (istStoppuhr) {
-      verbleibendeSekunden++;
-    } else {
-      verbleibendeSekunden--;
-      if (verbleibendeSekunden <= 0) {
-        beendeSession();
-        return;
-      }
+    const verstrichen = berechneVerstricheneSekunden();
+
+    if (!istStoppuhr && verstrichen >= gesamtZielSekunden) {
+      beendeSession();
+      return;
     }
     updateTimerAnzeige();
   }, 1000);
 }
 
 function updateTimerAnzeige() {
-  const m = Math.floor(verbleibendeSekunden / 60).toString().padStart(2, '0');
-  const s = (verbleibendeSekunden % 60).toString().padStart(2, '0');
+  const verstrichen = berechneVerstricheneSekunden();
+  let anzuzeigendeSekunden = 0;
+
+  if (istStoppuhr) {
+    anzuzeigendeSekunden = verstrichen;
+  } else {
+    anzuzeigendeSekunden = Math.max(0, gesamtZielSekunden - verstrichen);
+  }
+
+  const m = Math.floor(anzuzeigendeSekunden / 60).toString().padStart(2, '0');
+  const s = (anzuzeigendeSekunden % 60).toString().padStart(2, '0');
   document.getElementById('zeit-anzeige').textContent = `${m}:${s}`;
 }
 
-// PAUSIERT AUTOMATISCH, WENN DIE APP VERLASSEN WIRD
 document.addEventListener('visibilitychange', () => {
-  if (!istSessionAktiv) return;
-
-  if (document.hidden) {
-    istPausiert = true;
-    if (timerInterval) clearInterval(timerInterval);
-    aktualisierePauseUI();
+  if (istSessionAktiv) {
+    updateTimerAnzeige();
   }
 });
 
 function beendeSession() {
   istSessionAktiv = false;
-  istPausiert = false;
   clearInterval(timerInterval);
   
-  let gelernteMinuten = 0;
-  if (istStoppuhr) {
-    gelernteMinuten = Math.floor(verbleibendeSekunden / 60);
-  } else {
-    gelernteMinuten = zielMinuten - Math.ceil(verbleibendeSekunden / 60);
-  }
+  const verstricheneSekunden = berechneVerstricheneSekunden();
+  let gelernteMinuten = Math.floor(verstricheneSekunden / 60);
+
+  istPausiert = false;
+  startZeitstempel = null;
 
   if (gelernteMinuten > 0) {
     nutzerDaten[aktuellesFach].minuten += gelernteMinuten;
@@ -724,4 +758,3 @@ if ('serviceWorker' in navigator) {
 </script>
 </body>
 </html>
-

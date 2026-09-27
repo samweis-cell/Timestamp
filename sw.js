@@ -1,4 +1,4 @@
-const CACHE_NAME = 'timestamp-v9';
+const CACHE_NAME = 'timestamp-v10.0';
 const ASSETS = [
   './',
   './index.html',
